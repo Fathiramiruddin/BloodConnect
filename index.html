@@ -1,0 +1,1985 @@
+<!doctype html>
+<html lang="id" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BloodConnect - Sistem BDRS RSUD Toto Kabila</title>
+  <meta name="description" content="Sistem Manajemen dan Ketersediaan Darah Berbasis BDRS (Studi Kasus RSUD Toto Kabila)" />
+  <meta property="og:title" content="BloodConnect - Sistem BDRS RSUD Toto Kabila" />
+  <meta property="og:description" content="Dasbor ketersediaan darah real-time, permohonan darah pasien, dan manajemen logistik fisik BDRS." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            crimson: {
+              50: '#fef2f2',
+              100: '#fee2e2',
+              200: '#fecaca',
+              300: '#fca5a5',
+              400: '#f87171',
+              500: '#ef4444',
+              600: '#dc2626',
+              700: '#b91c1c',
+              800: '#991b1b',
+              900: '#7f1d1d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+    /* Smooth transitions */
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="min-h-full flex flex-col bg-slate-50 text-slate-800 antialiased selection:bg-red-100 selection:text-red-900">
+
+  <!-- ==================== TOP NAVIGATION BAR ==================== -->
+  <header class="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 gap-4">
+        
+        <!-- Brand Identity -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center text-white shadow-md shadow-red-200 shrink-0">
+            <!-- Blood drop with pulse icon -->
+            <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
+              <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+              <path d="M12 11v6M9 14h6" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xl font-bold tracking-tight text-slate-900">BloodConnect</span>
+              <span class="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-red-100 text-red-700">BDRS</span>
+            </div>
+            <p class="text-xs text-slate-500 hidden sm:block">RSUD Toto Kabila · Kab. Bone Bolango</p>
+          </div>
+        </div>
+
+        <!-- 3 Role Navigation Tabs -->
+        <nav class="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200" aria-label="Role Navigation">
+          <button 
+            type="button"
+            id="tab-btn-pasien"
+            onclick="switchRole('pasien')"
+            class="role-tab-btn flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 bg-white text-red-600 shadow-sm whitespace-nowrap"
+          >
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span>Pasien <span class="hidden md:inline font-normal text-slate-500">(Pemohon)</span></span>
+          </button>
+
+          <button 
+            type="button"
+            id="tab-btn-admin"
+            onclick="switchRole('admin')"
+            class="role-tab-btn flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 text-slate-600 hover:text-slate-900 whitespace-nowrap"
+          >
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+            </svg>
+            <span>Admin BDRS <span class="hidden md:inline font-normal text-slate-500">(Kendali)</span></span>
+          </button>
+
+          <button 
+            type="button"
+            id="tab-btn-rs"
+            onclick="switchRole('rs')"
+            class="role-tab-btn flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 text-slate-600 hover:text-slate-900 whitespace-nowrap"
+          >
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <span>Rumah Sakit <span class="hidden md:inline font-normal text-slate-500">(Logistik)</span></span>
+          </button>
+        </nav>
+
+        <!-- Right System Status Indicator -->
+        <div class="hidden lg:flex items-center gap-3">
+          <div class="flex items-center gap-2 text-xs font-medium text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
+            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>Jejaring BDRS Online</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== SUB-HEADER / BANNER INFORMASI ==================== -->
+  <div class="bg-gradient-to-r from-red-700 via-red-600 to-rose-700 text-white shadow-inner">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm">
+      <div class="flex items-center gap-2">
+        <svg class="w-4 h-4 text-red-200 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span class="font-medium">Unit Bank Darah Rumah Sakit (BDRS) RSUD Toto Kabila Terintegrasi</span>
+      </div>
+      <div class="flex items-center gap-3 text-red-100 text-xs font-mono">
+        <span>Suhu Refrigerator: <strong class="text-white tabular-nums">4.2°C</strong></span>
+        <span>·</span>
+        <span id="current-timestamp">Update: 02 Nov 2026, 19:30 WITA</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MAIN CONTENT CONTAINER ==================== -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- ============================================================= -->
+    <!-- 1. TAB PASIEN (PEMOHON)                                      -->
+    <!-- ============================================================= -->
+    <section id="role-pasien" class="tab-content active space-y-8">
+      
+      <!-- Pasien Hero & Call to Action -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
+        <div class="relative z-10 max-w-2xl">
+          <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-red-50 text-red-700 text-xs font-semibold mb-3 border border-red-100">
+            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+            Layanan Darurat & Elektif
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+            Dasbor Ketersediaan Darah Real-time
+          </h1>
+          <p class="text-slate-600 text-sm sm:text-base mt-2 leading-relaxed">
+            Pantau ketersediaan kantong darah di fasilitas kesehatan jejaring wilayah Gorontalo. Khusus rincian stok darah <strong class="text-slate-800">RSUD Toto Kabila</strong> hanya dapat diakses oleh pasien terdaftar RSUD Toto Kabila.
+          </p>
+        </div>
+        
+        <!-- Tombol Besar Ajukan Permohonan Darah -->
+        <div class="relative z-10 w-full md:w-auto shrink-0">
+          <button 
+            type="button" 
+            onclick="openBloodRequestModal()"
+            class="w-full md:w-auto px-6 py-4 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-xl font-bold text-base shadow-lg shadow-red-600/25 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-3 cursor-pointer"
+          >
+            <div class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+              <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+              </svg>
+            </div>
+            <span>Ajukan Permohonan Darah</span>
+          </button>
+        </div>
+
+        <!-- Decorative background glow -->
+        <div class="absolute -right-12 -bottom-12 w-64 h-64 bg-red-50 rounded-full blur-3xl pointer-events-none"></div>
+      </div>
+
+      <!-- Status Akses Pasien RSUD Toto Kabila -->
+      <div id="toto-access-banner" class="rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all">
+        <!-- Rendered dynamically by renderTotoAccessBar() -->
+      </div>
+
+      <!-- Quick Snapshot Stats -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div id="stat-card-toto-container" class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200">
+          <!-- Rendered dynamically by renderTotoStatCard() -->
+        </div>
+        <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200">
+          <p class="text-xs font-medium text-slate-500">Stok RSIA Siti Khadijah</p>
+          <div class="flex items-baseline gap-2 mt-2">
+            <span id="stat-total-khadijah" class="text-2xl sm:text-3xl font-extrabold text-slate-900 tabular-nums">48</span>
+            <span class="text-xs font-semibold text-slate-600">Kantong</span>
+          </div>
+          <span class="inline-block mt-2 text-[11px] font-medium text-slate-600">Jejaring Publik · Terbuka</span>
+        </div>
+        <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200">
+          <p class="text-xs font-medium text-slate-500">Stok RSUD Aloei Saboe</p>
+          <div class="flex items-baseline gap-2 mt-2">
+            <span id="stat-total-aloei" class="text-2xl sm:text-3xl font-extrabold text-slate-900 tabular-nums">92</span>
+            <span class="text-xs font-semibold text-slate-600">Kantong</span>
+          </div>
+          <span class="inline-block mt-2 text-[11px] font-medium text-slate-600">Jejaring Publik · Terbuka</span>
+        </div>
+        <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200">
+          <p class="text-xs font-medium text-slate-500">Permohonan Aktif Hari Ini</p>
+          <div class="flex items-baseline gap-2 mt-2">
+            <span id="stat-active-req" class="text-2xl sm:text-3xl font-extrabold text-red-600 tabular-nums">4</span>
+            <span class="text-xs font-semibold text-slate-600">Pasien</span>
+          </div>
+          <span class="inline-block mt-2 text-[11px] font-medium text-red-700">Diproses Verifikasi</span>
+        </div>
+      </div>
+
+      <!-- Ketersediaan Darah Per Fasilitas Kesehatan (Cards & Tabel Rinci) -->
+      <div class="space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">Ketersediaan Stok Golongan Darah & Rhesus</h2>
+            <p class="text-xs text-slate-500">Data live diperbarui otomatis dari sistem BDRS masing-masing fasilitas.</p>
+          </div>
+          <!-- Faskes Filter Pills -->
+          <div class="flex items-center gap-1.5 p-1 bg-white rounded-lg border border-slate-200 text-xs">
+            <button onclick="filterFaskesView('all')" id="btn-filter-all" class="px-3 py-1.5 font-medium rounded-md bg-red-600 text-white">Semua Faskes</button>
+            <button onclick="filterFaskesView('toto')" id="btn-filter-toto" class="px-3 py-1.5 font-medium rounded-md text-slate-600 hover:text-slate-900">RSUD Toto Kabila</button>
+            <button onclick="filterFaskesView('khadijah')" id="btn-filter-khadijah" class="px-3 py-1.5 font-medium rounded-md text-slate-600 hover:text-slate-900">RSIA Siti Khadijah</button>
+            <button onclick="filterFaskesView('aloei')" id="btn-filter-aloei" class="px-3 py-1.5 font-medium rounded-md text-slate-600 hover:text-slate-900">RSUD Aloei Saboe</button>
+          </div>
+        </div>
+
+        <!-- FASKES 1: RSUD TOTO KABILA (TERKUNCI UNTUK PUBLIK, KHUSUS PASIEN RS TOTO) -->
+        <div id="faskes-card-toto" class="bg-white rounded-2xl border-2 border-red-200 p-6 shadow-sm transition-all">
+          <!-- Rendered dynamically by renderTotoFaskesCard() -->
+        </div>
+
+        <!-- FASKES 2: RSIA SITI KHADIJAH (DUMMY) -->
+        <div id="faskes-card-khadijah" class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-lg">
+                SK
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="font-bold text-base sm:text-lg text-slate-900">RSIA Siti Khadijah</h3>
+                  <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">Faskes Jejaring</span>
+                </div>
+                <p class="text-xs text-slate-500">Jl. Nani Wartabone, Kota Gorontalo · Jejaring Rujukan Ibu & Anak</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="text-xs text-slate-500">Total Tersedia:</span>
+              <p class="text-xl font-bold text-slate-800 tabular-nums" id="badge-total-khadijah">48 Kantong</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <div class="flex items-center justify-between"><span class="text-xl font-bold text-slate-800">A</span><span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">Aman</span></div>
+              <p class="text-2xl font-bold text-slate-900 mt-2 tabular-nums">14 <span class="text-xs font-normal text-slate-500">ktg</span></p>
+              <p class="text-[11px] text-slate-500 mt-1">Rh+ 13 · Rh- 1</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <div class="flex items-center justify-between"><span class="text-xl font-bold text-slate-800">B</span><span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">Aman</span></div>
+              <p class="text-2xl font-bold text-slate-900 mt-2 tabular-nums">16 <span class="text-xs font-normal text-slate-500">ktg</span></p>
+              <p class="text-[11px] text-slate-500 mt-1">Rh+ 15 · Rh- 1</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <div class="flex items-center justify-between"><span class="text-xl font-bold text-slate-800">AB</span><span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-red-100 text-red-800">Kritis</span></div>
+              <p class="text-2xl font-bold text-slate-900 mt-2 tabular-nums">3 <span class="text-xs font-normal text-slate-500">ktg</span></p>
+              <p class="text-[11px] text-slate-500 mt-1">Rh+ 3 · Rh- 0</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <div class="flex items-center justify-between"><span class="text-xl font-bold text-slate-800">O</span><span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">Aman</span></div>
+              <p class="text-2xl font-bold text-slate-900 mt-2 tabular-nums">15 <span class="text-xs font-normal text-slate-500">ktg</span></p>
+              <p class="text-[11px] text-slate-500 mt-1">Rh+ 14 · Rh- 1</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- FASKES 3: RSUD PROF. DR. H. ALOEI SABOE (DUMMY) -->
+        <div id="faskes-card-aloei" class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-lg">
+                AS
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="font-bold text-base sm:text-lg text-slate-900">RSUD Prof. Dr. H. Aloei Saboe</h3>
+                  <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">Faskes Rujukan Utama</span>
+                </div>
+                <p class="text-xs text-slate-500">Jl. Prof. Dr. Aloei Saboe, Wongkaditi, Kota Gorontalo</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="text-xs text-slate-500">Total Tersedia:</span>
+              <p class="text-xl font-bold text-slate-800 tabular-nums" id="badge-total-aloei">92 Kantong</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <div class="flex items-center justify-between"><span class="text-xl font-bold text-slate-800">A</span><span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">Aman</span></div>
+              <p class="text-2xl font-bold text-slate-900 mt-2 tabular-nums">22 <span class="text-xs font-normal text-slate-500">ktg</span></p>
+              <p class="text-[11px] text-slate-500 mt-1">Rh+ 20 · Rh- 2</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <div class="flex items-center justify-between"><span class="text-xl font-bold text-slate-800">B</span><span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">Aman</span></div>
+              <p class="text-2xl font-bold text-slate-900 mt-2 tabular-nums">26 <span class="text-xs font-normal text-slate-500">ktg</span></p>
+              <p class="text-[11px] text-slate-500 mt-1">Rh+ 25 · Rh- 1</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <div class="flex items-center justify-between"><span class="text-xl font-bold text-slate-800">AB</span><span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-800">Terbatas</span></div>
+              <p class="text-2xl font-bold text-slate-900 mt-2 tabular-nums">9 <span class="text-xs font-normal text-slate-500">ktg</span></p>
+              <p class="text-[11px] text-slate-500 mt-1">Rh+ 8 · Rh- 1</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <div class="flex items-center justify-between"><span class="text-xl font-bold text-slate-800">O</span><span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">Aman</span></div>
+              <p class="text-2xl font-bold text-slate-900 mt-2 tabular-nums">35 <span class="text-xs font-normal text-slate-500">ktg</span></p>
+              <p class="text-[11px] text-slate-500 mt-1">Rh+ 33 · Rh- 2</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Riwayat Permohonan Terkini Pasien -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="font-bold text-base text-slate-900">Pelacakan Status Permohonan Anda</h3>
+            <p class="text-xs text-slate-500">Daftar pengajuan darah Anda yang sedang diproses oleh petugas BDRS.</p>
+          </div>
+          <button 
+            type="button" 
+            onclick="openBloodRequestModal()"
+            class="text-xs font-semibold text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer"
+          >
+            <span>+ Buat Permohonan Baru</span>
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr class="border-b border-slate-200 text-slate-500 text-xs">
+                <th class="py-3 px-3 font-semibold">No. Tiket</th>
+                <th class="py-3 px-3 font-semibold">Nama Pasien</th>
+                <th class="py-3 px-3 font-semibold">RS Tujuan</th>
+                <th class="py-3 px-3 font-semibold text-center">Golongan</th>
+                <th class="py-3 px-3 font-semibold text-center">Jumlah</th>
+                <th class="py-3 px-3 font-semibold">Waktu Pengajuan</th>
+                <th class="py-3 px-3 font-semibold text-right">Status</th>
+              </tr>
+            </thead>
+            <tbody id="patient-history-table" class="divide-y divide-slate-100 text-slate-700">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============================================================= -->
+    <!-- 2. TAB ADMIN BANK DARAH (PUSAT KENDALI)                      -->
+    <!-- ============================================================= -->
+    <section id="role-admin" class="tab-content space-y-8">
+      
+      <!-- Admin Header Banner -->
+      <div class="bg-slate-900 text-white rounded-2xl p-6 sm:p-7 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-2">
+            <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-red-600 text-white">PUSAT KENDALI BDRS</span>
+            <span class="text-xs text-slate-400">RSUD Toto Kabila (Kab. Bone Bolango)</span>
+          </div>
+          <h2 class="text-2xl font-bold tracking-tight">Manajemen Bank Darah & Alokasi Pasien</h2>
+          <p class="text-xs sm:text-sm text-slate-300 mt-1">Perbarui stok fisik real-time dan tinjau persetujuan permohonan darah yang masuk.</p>
+          <p class="text-xs text-amber-300 mt-2 flex items-center gap-1.5">
+            <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            <span>Privasi Aktif: Stok darah RSUD Toto Kabila disembunyikan dari publik dan hanya terlihat oleh pasien RSUD Toto Kabila terverifikasi.</span>
+          </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="bg-slate-800 border border-slate-700 px-4 py-2 rounded-xl text-right">
+            <span class="text-[11px] text-slate-400 block">Total Stok BDRS:</span>
+            <span id="admin-total-stock-display" class="text-2xl font-extrabold text-red-400 tabular-nums">114</span>
+            <span class="text-xs text-slate-300">Kantong</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- BAGIAN 1: MANAJEMEN STOK DARAH (Interactive +/-) -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-slate-100 gap-2">
+          <div>
+            <h3 class="text-lg font-bold text-slate-900">Bagian 1: Manajemen Stok Darah Real-time</h3>
+            <p class="text-xs text-slate-500">Klik tombol (+) atau (-) untuk memperbarui jumlah fisik kantong darah di lemari pendingin BDRS.</p>
+          </div>
+          <div class="text-xs text-slate-500 flex items-center gap-3 font-mono">
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Aman (>25)</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Terbatas (10-25)</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> Kritis (<10)</span>
+          </div>
+        </div>
+
+        <!-- 4 Golongan Darah Control Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-6">
+          
+          <!-- Golongan A -->
+          <div class="bg-slate-50 rounded-xl border border-slate-200 p-5 flex flex-col justify-between hover:border-slate-300 transition-all">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Golongan</span>
+                <p class="text-3xl font-black text-red-600">A</p>
+              </div>
+              <span id="admin-status-A" class="px-2.5 py-1 rounded text-xs font-bold bg-emerald-100 text-emerald-800">Aman</span>
+            </div>
+
+            <div class="my-5 text-center bg-white py-3 rounded-lg border border-slate-200">
+              <span id="admin-count-A" class="text-4xl font-extrabold text-slate-900 tabular-nums">28</span>
+              <span class="text-xs text-slate-500 block">Kantong Tersedia</span>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button 
+                type="button" 
+                onclick="changeStock('A', -1)"
+                title="Kurangi 1 Kantong"
+                class="flex-1 py-2 px-3 bg-white hover:bg-red-50 text-slate-700 hover:text-red-600 border border-slate-200 rounded-lg font-bold text-lg flex items-center justify-center transition-colors cursor-pointer shadow-sm active:scale-95"
+              >
+                −
+              </button>
+              <button 
+                type="button" 
+                onclick="changeStock('A', 1)"
+                title="Tambah 1 Kantong"
+                class="flex-1 py-2 px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-lg flex items-center justify-center transition-colors cursor-pointer shadow-sm active:scale-95"
+              >
+                +
+              </button>
+            </div>
+            <p class="text-[11px] text-slate-400 text-center mt-3 font-mono">Rh+: <span id="admin-pos-A">26</span> · Rh-: <span id="admin-neg-A">2</span></p>
+          </div>
+
+          <!-- Golongan B -->
+          <div class="bg-slate-50 rounded-xl border border-slate-200 p-5 flex flex-col justify-between hover:border-slate-300 transition-all">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Golongan</span>
+                <p class="text-3xl font-black text-red-600">B</p>
+              </div>
+              <span id="admin-status-B" class="px-2.5 py-1 rounded text-xs font-bold bg-emerald-100 text-emerald-800">Aman</span>
+            </div>
+
+            <div class="my-5 text-center bg-white py-3 rounded-lg border border-slate-200">
+              <span id="admin-count-B" class="text-4xl font-extrabold text-slate-900 tabular-nums">34</span>
+              <span class="text-xs text-slate-500 block">Kantong Tersedia</span>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button 
+                type="button" 
+                onclick="changeStock('B', -1)"
+                title="Kurangi 1 Kantong"
+                class="flex-1 py-2 px-3 bg-white hover:bg-red-50 text-slate-700 hover:text-red-600 border border-slate-200 rounded-lg font-bold text-lg flex items-center justify-center transition-colors cursor-pointer shadow-sm active:scale-95"
+              >
+                −
+              </button>
+              <button 
+                type="button" 
+                onclick="changeStock('B', 1)"
+                title="Tambah 1 Kantong"
+                class="flex-1 py-2 px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-lg flex items-center justify-center transition-colors cursor-pointer shadow-sm active:scale-95"
+              >
+                +
+              </button>
+            </div>
+            <p class="text-[11px] text-slate-400 text-center mt-3 font-mono">Rh+: <span id="admin-pos-B">32</span> · Rh-: <span id="admin-neg-B">2</span></p>
+          </div>
+
+          <!-- Golongan AB -->
+          <div class="bg-slate-50 rounded-xl border border-slate-200 p-5 flex flex-col justify-between hover:border-slate-300 transition-all">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Golongan</span>
+                <p class="text-3xl font-black text-red-600">AB</p>
+              </div>
+              <span id="admin-status-AB" class="px-2.5 py-1 rounded text-xs font-bold bg-amber-100 text-amber-800">Terbatas</span>
+            </div>
+
+            <div class="my-5 text-center bg-white py-3 rounded-lg border border-slate-200">
+              <span id="admin-count-AB" class="text-4xl font-extrabold text-slate-900 tabular-nums">12</span>
+              <span class="text-xs text-slate-500 block">Kantong Tersedia</span>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button 
+                type="button" 
+                onclick="changeStock('AB', -1)"
+                title="Kurangi 1 Kantong"
+                class="flex-1 py-2 px-3 bg-white hover:bg-red-50 text-slate-700 hover:text-red-600 border border-slate-200 rounded-lg font-bold text-lg flex items-center justify-center transition-colors cursor-pointer shadow-sm active:scale-95"
+              >
+                −
+              </button>
+              <button 
+                type="button" 
+                onclick="changeStock('AB', 1)"
+                title="Tambah 1 Kantong"
+                class="flex-1 py-2 px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-lg flex items-center justify-center transition-colors cursor-pointer shadow-sm active:scale-95"
+              >
+                +
+              </button>
+            </div>
+            <p class="text-[11px] text-slate-400 text-center mt-3 font-mono">Rh+: <span id="admin-pos-AB">11</span> · Rh-: <span id="admin-neg-AB">1</span></p>
+          </div>
+
+          <!-- Golongan O -->
+          <div class="bg-slate-50 rounded-xl border border-slate-200 p-5 flex flex-col justify-between hover:border-slate-300 transition-all">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Golongan</span>
+                <p class="text-3xl font-black text-red-600">O</p>
+              </div>
+              <span id="admin-status-O" class="px-2.5 py-1 rounded text-xs font-bold bg-emerald-100 text-emerald-800">Aman</span>
+            </div>
+
+            <div class="my-5 text-center bg-white py-3 rounded-lg border border-slate-200">
+              <span id="admin-count-O" class="text-4xl font-extrabold text-slate-900 tabular-nums">40</span>
+              <span class="text-xs text-slate-500 block">Kantong Tersedia</span>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button 
+                type="button" 
+                onclick="changeStock('O', -1)"
+                title="Kurangi 1 Kantong"
+                class="flex-1 py-2 px-3 bg-white hover:bg-red-50 text-slate-700 hover:text-red-600 border border-slate-200 rounded-lg font-bold text-lg flex items-center justify-center transition-colors cursor-pointer shadow-sm active:scale-95"
+              >
+                −
+              </button>
+              <button 
+                type="button" 
+                onclick="changeStock('O', 1)"
+                title="Tambah 1 Kantong"
+                class="flex-1 py-2 px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-lg flex items-center justify-center transition-colors cursor-pointer shadow-sm active:scale-95"
+              >
+                +
+              </button>
+            </div>
+            <p class="text-[11px] text-slate-400 text-center mt-3 font-mono">Rh+: <span id="admin-pos-O">38</span> · Rh-: <span id="admin-neg-O">2</span></p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- GRAFIK TREN STOK DARAH 7 HARI TERAKHIR (RECHARTS) -->
+      <div id="admin-blood-trend-chart"></div>
+
+      <!-- BAGIAN 2: DAFTAR PERMOHONAN MASUK -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-3">
+          <div>
+            <h3 class="text-lg font-bold text-slate-900">Bagian 2: Daftar Permohonan Masuk</h3>
+            <p class="text-xs text-slate-500">Tinjau kelayakan medis dan ketersediaan darah, lalu putuskan Setujui atau Tolak.</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2.5">
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-slate-500">Filter:</span>
+              <select id="admin-request-filter" onchange="filterAdminRequests()" class="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-red-500">
+                <option value="all">Semua Status</option>
+                <option value="Menunggu" selected>Menunggu Verifikasi</option>
+                <option value="Disetujui">Disetujui</option>
+                <option value="Ditolak">Ditolak</option>
+              </select>
+            </div>
+            <button
+              type="button"
+              onclick="window.exportAdminRequestsPdf && window.exportAdminRequestsPdf()"
+              class="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              <span>Cetak Laporan</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto mt-4">
+          <table class="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr class="bg-slate-50/80 text-slate-600 border-b border-slate-200 text-xs uppercase tracking-wider">
+                <th class="py-3 px-4 font-semibold">Nama Pasien & Rekam Medis</th>
+                <th class="py-3 px-4 font-semibold text-center">Golongan Darah</th>
+                <th class="py-3 px-4 font-semibold text-center">Jumlah</th>
+                <th class="py-3 px-4 font-semibold">Waktu Pengajuan</th>
+                <th class="py-3 px-4 font-semibold text-center">Status</th>
+                <th class="py-3 px-4 font-semibold text-center">Aksi Keputusan</th>
+              </tr>
+            </thead>
+            <tbody id="admin-requests-table-body" class="divide-y divide-slate-100 text-slate-700">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============================================================= -->
+    <!-- 3. TAB RUMAH SAKIT (PENYIMPANAN AKHIR FISIK)                 -->
+    <!-- ============================================================= -->
+    <section id="role-rs" class="tab-content space-y-8">
+      
+      <!-- Hospital Header Banner -->
+      <div class="bg-slate-900 text-white rounded-2xl p-6 sm:p-7 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-2">
+            <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-600 text-white">LOGISTIK & COLD CHAIN</span>
+            <span class="text-xs text-slate-400">Unit Bangsal Rawat Inap & IGD RSUD Toto Kabila</span>
+          </div>
+          <h2 class="text-2xl font-bold tracking-tight">Penyimpanan Fisik & Pelacakan Kantong Darah</h2>
+          <p class="text-xs sm:text-sm text-slate-300 mt-1">Kelola serah terima fisik kantong darah dari BDRS, konfirmasi penyimpanan bangsal, atau retur jika suhu drop.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="bg-slate-800 border border-slate-700 px-4 py-2 rounded-xl text-right">
+            <span class="text-[11px] text-slate-400 block">Kantong di Bangsal:</span>
+            <span id="hospital-stored-count" class="text-2xl font-extrabold text-blue-400 tabular-nums">4</span>
+            <span class="text-xs text-slate-300">Unit Siap Pakai</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Protokol Standar Operasional Bangsal -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 flex items-start gap-3">
+          <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <div>
+            <span class="font-bold text-slate-900 block">1. Verifikasi Identitas</span>
+            <span class="text-slate-500">Cocokkan barcode kantong darah dengan rekam medis pasien sebelum dipindahkan.</span>
+          </div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 flex items-start gap-3">
+          <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          </div>
+          <div>
+            <span class="font-bold text-slate-900 block">2. "Disimpan di Bangsal"</span>
+            <span class="text-slate-500">Pilih tombol ini jika kantong disimpan di cooler bangsal dan segera ditransfusikan.</span>
+          </div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 flex items-start gap-3">
+          <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          </div>
+          <div>
+            <span class="font-bold text-slate-900 block">3. "Dikembalikan ke Bank Darah"</span>
+            <span class="text-slate-500">Pilih retur jika kondisi pasien berubah atau suhu melampaui batas toleransi 6°C.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABEL STATUS KANTONG DARAH DITERIMA (Wajib Sesuai Instruksi) -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-slate-100 gap-3">
+          <div>
+            <h3 class="text-lg font-bold text-slate-900">Tabel: Status Kantong Darah Diterima</h3>
+            <p class="text-xs text-slate-500">Daftar kantong darah fisik yang didistribusikan dari BDRS menuju unit bangsal / IGD.</p>
+          </div>
+          <span class="text-xs font-mono text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
+            Unit Penerima: Ruang Bedah & ICU
+          </span>
+        </div>
+
+        <div class="overflow-x-auto mt-4">
+          <table class="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 text-xs uppercase tracking-wider">
+                <th class="py-3 px-4 font-semibold">ID Kantong Darah</th>
+                <th class="py-3 px-4 font-semibold text-center">Golongan</th>
+                <th class="py-3 px-4 font-semibold">Bangsal / Pasien</th>
+                <th class="py-3 px-4 font-semibold">Tanggal Terima</th>
+                <th class="py-3 px-4 font-semibold text-center">Status Fisik</th>
+                <th class="py-3 px-4 font-semibold text-center">Kolom Aksi Wajib</th>
+              </tr>
+            </thead>
+            <tbody id="hospital-bags-table-body" class="divide-y divide-slate-100 text-slate-700">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="bg-white border-t border-slate-200 mt-auto py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+      <div class="flex items-center gap-2">
+        <div class="w-2.5 h-2.5 rounded-full bg-red-600"></div>
+        <span class="font-semibold text-slate-800">BloodConnect</span>
+        <span>·</span>
+        <span>BDRS RSUD Toto Kabila (Kabupaten Bone Bolango, Provinsi Gorontalo)</span>
+      </div>
+      <p class="font-mono text-slate-400">Mockup Sistem Terintegrasi Versi 1.0</p>
+    </div>
+  </footer>
+
+  <!-- ==================== MODAL FORM PERMOHONAN DARAH (TAB PASIEN) ==================== -->
+  <div id="modal-blood-request" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <!-- Backdrop -->
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" onclick="closeBloodRequestModal()"></div>
+
+    <!-- Modal Dialog -->
+    <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+      <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-slate-200">
+        
+        <!-- Modal Header -->
+        <div class="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 text-white flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center">
+              <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-base font-bold leading-6" id="modal-title">Ajukan Permohonan Darah</h3>
+              <p class="text-xs text-red-100">BDRS RSUD Toto Kabila & Jejaring</p>
+            </div>
+          </div>
+          <button 
+            type="button" 
+            onclick="closeBloodRequestModal()"
+            class="text-red-100 hover:text-white rounded-lg p-1 transition-colors cursor-pointer"
+          >
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Modal Form Body -->
+        <form id="form-blood-request" onsubmit="handleBloodRequestSubmit(event)" class="p-6 space-y-4">
+          
+          <!-- Input 1: Nama Pasien -->
+          <div>
+            <label for="req-patient-name" class="block text-xs font-bold text-slate-700 mb-1">
+              Nama Pasien <span class="text-red-500">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="req-patient-name" 
+              name="patientName"
+              required 
+              placeholder="Contoh: Rahmat Dunggio"
+              class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-slate-800 placeholder-slate-400"
+            />
+          </div>
+
+          <!-- Input 2: Rumah Sakit Tujuan -->
+          <div>
+            <label for="req-hospital" class="block text-xs font-bold text-slate-700 mb-1">
+              Rumah Sakit Tujuan <span class="text-red-500">*</span>
+            </label>
+            <select 
+              id="req-hospital" 
+              name="hospital"
+              required 
+              class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-slate-800 bg-white"
+            >
+              <option value="RSUD Toto Kabila" selected>RSUD Toto Kabila (BDRS Utama - Kab. Bone Bolango)</option>
+              <option value="RSIA Siti Khadijah">RSIA Siti Khadijah (Kota Gorontalo)</option>
+              <option value="RSUD Prof. Dr. H. Aloei Saboe">RSUD Prof. Dr. H. Aloei Saboe (Kota Gorontalo)</option>
+            </select>
+          </div>
+
+          <!-- Row Input: Golongan Darah & Rhesus -->
+          <div class="grid grid-cols-2 gap-3">
+            <!-- Golongan Darah -->
+            <div>
+              <label for="req-blood-group" class="block text-xs font-bold text-slate-700 mb-1">
+                Golongan Darah <span class="text-red-500">*</span>
+              </label>
+              <select 
+                id="req-blood-group" 
+                name="bloodGroup"
+                required 
+                class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-slate-800 font-bold bg-white"
+              >
+                <option value="A">Golongan A</option>
+                <option value="B">Golongan B</option>
+                <option value="AB">Golongan AB</option>
+                <option value="O" selected>Golongan O</option>
+              </select>
+            </div>
+
+            <!-- Rhesus -->
+            <div>
+              <label for="req-rhesus" class="block text-xs font-bold text-slate-700 mb-1">
+                Rhesus <span class="text-red-500">*</span>
+              </label>
+              <select 
+                id="req-rhesus" 
+                name="rhesus"
+                required 
+                class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-slate-800 bg-white"
+              >
+                <option value="+" selected>Rhesus Positif (+)</option>
+                <option value="-">Rhesus Negatif (-)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Input 3: Jumlah Kantong & Jenis Komponen -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="req-bags" class="block text-xs font-bold text-slate-700 mb-1">
+                Jumlah Kantong <span class="text-red-500">*</span>
+              </label>
+              <input 
+                type="number" 
+                id="req-bags" 
+                name="bags"
+                min="1" 
+                max="10" 
+                value="2" 
+                required 
+                class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-slate-800 font-bold tabular-nums"
+              />
+            </div>
+            <div>
+              <label for="req-component" class="block text-xs font-bold text-slate-700 mb-1">
+                Komponen Darah
+              </label>
+              <select 
+                id="req-component" 
+                name="component"
+                class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-slate-800 bg-white"
+              >
+                <option value="Packed Red Cells (PRC)" selected>PRC (Sel Darah Merah)</option>
+                <option value="Whole Blood (WB)">Whole Blood (Darah Lengkap)</option>
+                <option value="Thrombocyte Concentrate (TC)">TC (Trombosit)</option>
+                <option value="Fresh Frozen Plasma (FFP)">FFP (Plasma Beku)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Input 4: Catatan Klinis / Keperluan -->
+          <div>
+            <label for="req-notes" class="block text-xs font-bold text-slate-700 mb-1">
+              Diagnosis / Catatan Klinis <span class="text-slate-400 font-normal">(Opsional)</span>
+            </label>
+            <textarea 
+              id="req-notes" 
+              name="notes"
+              rows="2" 
+              placeholder="Contoh: Operasi Cito Sectio Caesarea / Hb 6.4 g/dL"
+              class="w-full text-sm px-3.5 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-slate-800 placeholder-slate-400"
+            ></textarea>
+          </div>
+
+          <!-- Buttons Action -->
+          <div class="pt-3 border-t border-slate-200 flex items-center justify-end gap-3">
+            <button 
+              type="button" 
+              onclick="closeBloodRequestModal()"
+              class="px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+            >
+              Batal
+            </button>
+            <button 
+              type="submit" 
+              class="px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-red-600 hover:bg-red-700 active:bg-red-800 rounded-xl shadow-md shadow-red-500/25 transition-all cursor-pointer flex items-center gap-2"
+            >
+              <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+              <span>Kirim Permohonan</span>
+            </button>
+          </div>
+
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL VERIFIKASI PASIEN RSUD TOTO KABILA ==================== -->
+  <div id="modal-toto-verification" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="verify-modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" onclick="closeVerificationModal()"></div>
+
+    <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+      <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-slate-200">
+        
+        <div class="bg-slate-900 px-6 py-4 text-white flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-red-600 flex items-center justify-center">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-base font-bold leading-6" id="verify-modal-title">Verifikasi Pasien RSUD Toto Kabila</h3>
+              <p class="text-xs text-slate-300">Akses Khusus Data Stok Darah BDRS</p>
+            </div>
+          </div>
+          <button 
+            type="button" 
+            onclick="closeVerificationModal()"
+            class="text-slate-300 hover:text-white rounded-lg p-1 transition-colors cursor-pointer"
+          >
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form id="form-toto-verification" onsubmit="handleVerificationSubmit(event)" class="p-6 space-y-4">
+          <div class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 leading-relaxed">
+            Sesuai kebijakan internal <strong>RSUD Toto Kabila</strong>, informasi stok darah bersifat rahasia bagi publik umum dan hanya dapat diakses oleh pasien yang terdaftar di RSUD Toto Kabila.
+          </div>
+
+          <div>
+            <label for="verify-rm" class="block text-xs font-bold text-slate-700 mb-1">
+              Nomor Rekam Medis (No. RM) RSUD Toto Kabila <span class="text-red-500">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="verify-rm" 
+              required 
+              placeholder="Contoh: RM-TK-202601"
+              class="w-full text-sm font-mono px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-slate-800 placeholder-slate-400"
+            />
+          </div>
+
+          <div>
+            <label for="verify-dob" class="block text-xs font-bold text-slate-700 mb-1">
+              Tanggal Lahir Pasien <span class="text-red-500">*</span>
+            </label>
+            <input 
+              type="date" 
+              id="verify-dob" 
+              required 
+              class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-slate-800"
+            />
+          </div>
+
+          <!-- Simulasi Cepat untuk Presentasi -->
+          <div class="pt-2 border-t border-slate-100">
+            <p class="text-[11px] font-semibold text-slate-500 mb-2">Simulasi Cepat Data Pasien (Demo):</p>
+            <div class="flex flex-col gap-1.5">
+              <button 
+                type="button" 
+                onclick="fillDemoPatient('toto1')"
+                class="text-left px-3 py-2 rounded-lg bg-slate-50 hover:bg-red-50 border border-slate-200 hover:border-red-200 text-xs transition-colors cursor-pointer flex items-center justify-between"
+              >
+                <span><strong class="text-slate-800">Ny. Fatimah Mooduto</strong> · <span class="font-mono text-slate-500">RM-TK-202601</span></span>
+                <span class="text-[11px] font-semibold text-emerald-700">Pasien RS Toto</span>
+              </button>
+              <button 
+                type="button" 
+                onclick="fillDemoPatient('toto2')"
+                class="text-left px-3 py-2 rounded-lg bg-slate-50 hover:bg-red-50 border border-slate-200 hover:border-red-200 text-xs transition-colors cursor-pointer flex items-center justify-between"
+              >
+                <span><strong class="text-slate-800">Tn. Hendra Pasue</strong> · <span class="font-mono text-slate-500">RM-TK-202602</span></span>
+                <span class="text-[11px] font-semibold text-emerald-700">Pasien RS Toto</span>
+              </button>
+              <button 
+                type="button" 
+                onclick="fillDemoPatient('external')"
+                class="text-left px-3 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs transition-colors cursor-pointer flex items-center justify-between"
+              >
+                <span><strong class="text-slate-800">Tn. Budi (Publik / Non-RS Toto)</strong> · <span class="font-mono text-slate-500">UMUM-0991</span></span>
+                <span class="text-[11px] font-semibold text-red-600">Uji Penolakan</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="verify-error-box" class="hidden p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-medium"></div>
+
+          <div class="pt-3 border-t border-slate-200 flex items-center justify-end gap-3">
+            <button 
+              type="button" 
+              onclick="closeVerificationModal()"
+              class="px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+            >
+              Batal
+            </button>
+            <button 
+              type="submit" 
+              class="px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-red-600 hover:bg-red-700 active:bg-red-800 rounded-xl shadow-md shadow-red-500/25 transition-all cursor-pointer"
+            >
+              Verifikasi & Buka Stok
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TOAST NOTIFICATION CONTAINER ==================== -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- ==================== LOGIKA JAVASCRIPT MURNI ==================== -->
+  <script>
+    // Global State Repository
+    const bloodState = {
+      currentRole: 'pasien',
+
+      // Kontrol Privasi RSUD Toto Kabila: Default terkunci untuk publik
+      totoPatientVerified: false,
+      verifiedPatient: null,
+
+      // Daftar Pasien Aktif Terdaftar di RSUD Toto Kabila
+      registeredTotoPatients: [
+        { rm: 'RM-TK-202601', dob: '1992-04-14', name: 'Ny. Fatimah Mooduto', ward: 'Ruang Kebidanan & Kandungan' },
+        { rm: 'RM-TK-202602', dob: '1985-08-21', name: 'Tn. Hendra Pasue', ward: 'IGD Bedah Trauma' },
+        { rm: 'RM-TK-202603', dob: '2018-11-03', name: 'An. Rizky Daud', ward: 'Bangsal Perawatan Anak' }
+      ],
+      
+      // Real-time stock for RSUD Toto Kabila
+      totoStock: {
+        A: { total: 28, pos: 26, neg: 2 },
+        B: { total: 34, pos: 32, neg: 2 },
+        AB: { total: 12, pos: 11, neg: 1 },
+        O: { total: 40, pos: 38, neg: 2 }
+      },
+
+      // Faskes Dummy 1: RSIA Siti Khadijah
+      khadijahTotal: 48,
+      // Faskes Dummy 2: RSUD Prof. Dr. Aloei Saboe
+      aloeiTotal: 92,
+
+      // Daftar Permohonan Darah Pasien (Sinkron antara Tab Pasien & Tab Admin)
+      requests: [
+        {
+          id: 'REQ-TK-081',
+          patientName: 'Ny. Fatimah Mooduto',
+          hospital: 'RSUD Toto Kabila',
+          bloodGroup: 'B',
+          rhesus: '+',
+          bags: 2,
+          component: 'PRC',
+          timestamp: '02 Nov 2026, 17:15 WITA',
+          status: 'Menunggu', // Menunggu, Disetujui, Ditolak
+          ward: 'Ruang Kebidanan & Kandungan'
+        },
+        {
+          id: 'REQ-TK-082',
+          patientName: 'Tn. Hendra Pasue',
+          hospital: 'RSUD Toto Kabila',
+          bloodGroup: 'O',
+          rhesus: '+',
+          bags: 3,
+          component: 'Whole Blood',
+          timestamp: '02 Nov 2026, 18:02 WITA',
+          status: 'Menunggu',
+          ward: 'IGD Bedah Trauma'
+        },
+        {
+          id: 'REQ-TK-080',
+          patientName: 'An. Rizky Daud',
+          hospital: 'RSUD Toto Kabila',
+          bloodGroup: 'A',
+          rhesus: '+',
+          bags: 1,
+          component: 'PRC',
+          timestamp: '02 Nov 2026, 15:40 WITA',
+          status: 'Disetujui',
+          ward: 'Bangsal Perawatan Anak'
+        },
+        {
+          id: 'REQ-TK-079',
+          patientName: 'Tn. Zainal Abidin',
+          hospital: 'RSIA Siti Khadijah',
+          bloodGroup: 'AB',
+          rhesus: '+',
+          bags: 2,
+          component: 'FFP',
+          timestamp: '02 Nov 2026, 14:10 WITA',
+          status: 'Disetujui',
+          ward: 'ICU Terpadu'
+        }
+      ],
+
+      // Logistik Kantong Darah Fisik untuk Tab Rumah Sakit
+      hospitalBags: [
+        {
+          bagId: 'BD-TK-2026-0411',
+          bloodGroup: 'A+',
+          component: 'PRC',
+          patientTarget: 'An. Rizky Daud (Bangsal Anak)',
+          receivedDate: '02 Nov 2026, 16:15 WITA',
+          status: 'Disimpan di Bangsal', // 'Menunggu Konfirmasi', 'Disimpan di Bangsal', 'Dikembalikan ke Bank Darah'
+        },
+        {
+          bagId: 'BD-TK-2026-0412',
+          bloodGroup: 'B+',
+          component: 'PRC',
+          patientTarget: 'Ny. Fatimah Mooduto (Kebidanan)',
+          receivedDate: '02 Nov 2026, 17:45 WITA',
+          status: 'Menunggu Konfirmasi',
+        },
+        {
+          bagId: 'BD-TK-2026-0413',
+          bloodGroup: 'O+',
+          component: 'Whole Blood',
+          patientTarget: 'Tn. Hendra Pasue (IGD Bedah)',
+          receivedDate: '02 Nov 2026, 18:30 WITA',
+          status: 'Menunggu Konfirmasi',
+        },
+        {
+          bagId: 'BD-TK-2026-0399',
+          bloodGroup: 'AB+',
+          component: 'FFP',
+          patientTarget: 'Tn. Zainal Abidin (ICU)',
+          receivedDate: '02 Nov 2026, 15:00 WITA',
+          status: 'Disimpan di Bangsal',
+        },
+        {
+          bagId: 'BD-TK-2026-0388',
+          bloodGroup: 'O-',
+          component: 'PRC',
+          patientTarget: 'Tn. Irwan Monoarfa (Bedah)',
+          receivedDate: '02 Nov 2026, 11:20 WITA',
+          status: 'Dikembalikan ke Bank Darah',
+        }
+      ]
+    };
+    window.bloodState = bloodState;
+
+    // 1. FUNGSI PERPINDAHAN ANTAR TAB ROLE
+    function switchRole(roleId) {
+      bloodState.currentRole = roleId;
+
+      // Update Tab Buttons UI
+      const tabs = ['pasien', 'admin', 'rs'];
+      tabs.forEach(tab => {
+        const btn = document.getElementById(`tab-btn-${tab}`);
+        const content = document.getElementById(`role-${tab}`);
+
+        if (tab === roleId) {
+          btn.className = 'role-tab-btn flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 bg-white text-red-600 shadow-sm whitespace-nowrap';
+          content.classList.add('active');
+        } else {
+          btn.className = 'role-tab-btn flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 text-slate-600 hover:text-slate-900 whitespace-nowrap';
+          content.classList.remove('active');
+        }
+      });
+
+      // Show friendly notification when switching roles
+      let roleLabel = 'Pasien (Pemohon Darah)';
+      if (roleId === 'admin') roleLabel = 'Admin Bank Darah (Pusat Kendali BDRS)';
+      if (roleId === 'rs') roleLabel = 'Rumah Sakit (Penyimpanan Akhir Fisik)';
+
+      showToast('Hak Akses Berpindah', `Memuat antarmuka role: ${roleLabel}`, 'info');
+      renderAllViews();
+      window.dispatchEvent(new CustomEvent('bloodconnect:role-changed', { detail: { role: roleId } }));
+    }
+
+    // 2. FUNGSI VERIFIKASI PASIEN RSUD TOTO KABILA (PRIVASI STOK)
+    function openVerificationModal() {
+      const modal = document.getElementById('modal-toto-verification');
+      const errBox = document.getElementById('verify-error-box');
+      if (errBox) errBox.classList.add('hidden');
+      modal.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
+      setTimeout(() => {
+        document.getElementById('verify-rm').focus();
+      }, 100);
+    }
+
+    function closeVerificationModal() {
+      const modal = document.getElementById('modal-toto-verification');
+      modal.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+    }
+
+    function fillDemoPatient(type) {
+      const rmInput = document.getElementById('verify-rm');
+      const dobInput = document.getElementById('verify-dob');
+      const errBox = document.getElementById('verify-error-box');
+      if (errBox) errBox.classList.add('hidden');
+
+      if (type === 'toto1') {
+        rmInput.value = 'RM-TK-202601';
+        dobInput.value = '1992-04-14';
+      } else if (type === 'toto2') {
+        rmInput.value = 'RM-TK-202602';
+        dobInput.value = '1985-08-21';
+      } else {
+        rmInput.value = 'UMUM-0991';
+        dobInput.value = '1990-01-10';
+      }
+    }
+
+    function handleVerificationSubmit(event) {
+      event.preventDefault();
+      const rm = document.getElementById('verify-rm').value.trim().toUpperCase();
+      const dob = document.getElementById('verify-dob').value;
+      const errBox = document.getElementById('verify-error-box');
+
+      const matched = bloodState.registeredTotoPatients.find(
+        p => p.rm.toUpperCase() === rm && p.dob === dob
+      );
+
+      if (!matched) {
+        if (errBox) {
+          errBox.innerText = 'Akses ditolak: Nomor Rekam Medis atau Tanggal Lahir tidak terdaftar sebagai pasien aktif RSUD Toto Kabila.';
+          errBox.classList.remove('hidden');
+        }
+        showToast('Akses Ditolak', 'Hanya pasien terdaftar RSUD Toto Kabila yang dapat melihat stok darah RSUD Toto Kabila.', 'error');
+        return;
+      }
+
+      bloodState.totoPatientVerified = true;
+      bloodState.verifiedPatient = matched;
+      closeVerificationModal();
+      document.getElementById('form-toto-verification').reset();
+
+      showToast(
+        'Verifikasi Berhasil',
+        `Selamat datang, ${matched.name}. Stok darah RSUD Toto Kabila kini dapat diakses.`,
+        'success'
+      );
+
+      renderAllViews();
+    }
+
+    function logoutTotoPatient() {
+      bloodState.totoPatientVerified = false;
+      bloodState.verifiedPatient = null;
+      showToast(
+        'Kembali ke Mode Publik',
+        'Akses stok darah RSUD Toto Kabila telah dikunci kembali untuk menjaga privasi.',
+        'info'
+      );
+      renderAllViews();
+    }
+
+    // 3. FUNGSI MANAJEMEN MODAL PERMOHONAN DARAH
+    function openBloodRequestModal() {
+      const modal = document.getElementById('modal-blood-request');
+      const nameInput = document.getElementById('req-patient-name');
+      if (bloodState.totoPatientVerified && bloodState.verifiedPatient && !nameInput.value) {
+        nameInput.value = bloodState.verifiedPatient.name;
+      }
+      modal.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
+      // Focus patient name
+      setTimeout(() => {
+        nameInput.focus();
+      }, 100);
+    }
+
+    function closeBloodRequestModal() {
+      const modal = document.getElementById('modal-blood-request');
+      modal.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+    }
+
+    // Handle Form Submit
+    function handleBloodRequestSubmit(event) {
+      event.preventDefault();
+
+      const patientName = document.getElementById('req-patient-name').value.trim();
+      const hospital = document.getElementById('req-hospital').value;
+      const bloodGroup = document.getElementById('req-blood-group').value;
+      const rhesus = document.getElementById('req-rhesus').value;
+      const bags = parseInt(document.getElementById('req-bags').value, 10);
+      const component = document.getElementById('req-component').value;
+      const notes = document.getElementById('req-notes').value.trim();
+
+      if (!patientName) {
+        showToast('Validasi Gagal', 'Harap isi nama pasien.', 'error');
+        return;
+      }
+
+      // Generate Ticket ID
+      const ticketId = 'REQ-TK-' + String(Math.floor(100 + Math.random() * 900));
+      const now = new Date();
+      const timeStr = `${now.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}, ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} WITA`;
+
+      // New Request Object
+      const newRequest = {
+        id: ticketId,
+        patientName: patientName,
+        hospital: hospital,
+        bloodGroup: bloodGroup,
+        rhesus: rhesus,
+        bags: bags,
+        component: component.split(' ')[0], // abbreviation
+        timestamp: timeStr,
+        status: 'Menunggu',
+        ward: notes ? `Catatan: ${notes}` : 'Ruang Rawat Terjadwal'
+      };
+
+      // Add to state
+      bloodState.requests.unshift(newRequest);
+
+      // Close modal & reset form
+      closeBloodRequestModal();
+      document.getElementById('form-blood-request').reset();
+
+      // Show toast
+      showToast(
+        'Permohonan Terkirim!',
+        `Pengajuan darah ${bloodGroup}${rhesus} sejumlah ${bags} kantong untuk ${patientName} berhasil dikirim ke BDRS.`,
+        'success'
+      );
+
+      // Re-render UI
+      renderPatientHistory();
+      renderAdminRequests();
+      updateHeaderStats();
+    }
+
+    // 3. FUNGSI ADMIN: UBAH STOK REAL-TIME (+ dan -)
+    function changeStock(group, delta) {
+      const item = bloodState.totoStock[group];
+      if (!item) return;
+
+      const newTotal = item.total + delta;
+      if (newTotal < 0) {
+        showToast('Peringatan Stok', `Stok Golongan ${group} sudah 0, tidak bisa dikurangi lagi.`, 'warning');
+        return;
+      }
+
+      item.total = newTotal;
+      if (delta > 0) {
+        item.pos += 1;
+      } else {
+        if (item.pos > 0) item.pos -= 1;
+        else if (item.neg > 0) item.neg -= 1;
+      }
+
+      showToast(
+        delta > 0 ? 'Stok Ditambahkan' : 'Stok Dikurangi',
+        `Golongan ${group} kini berjumlah ${item.total} kantong.`,
+        delta > 0 ? 'success' : 'info'
+      );
+
+      renderStockCards();
+      updateHeaderStats();
+    }
+
+    // 4. FUNGSI ADMIN: SETUJUI / TOLAK PERMOHONAN
+    function approveRequest(requestId) {
+      const req = bloodState.requests.find(r => r.id === requestId);
+      if (!req) return;
+
+      req.status = 'Disetujui';
+
+      // Buat entri kantong darah otomatis di Tab Logistik Rumah Sakit
+      const newBagId = 'BD-TK-2026-0' + String(Math.floor(420 + Math.random() * 80));
+      bloodState.hospitalBags.unshift({
+        bagId: newBagId,
+        bloodGroup: `${req.bloodGroup}${req.rhesus}`,
+        component: req.component,
+        patientTarget: `${req.patientName} (${req.hospital})`,
+        receivedDate: 'Baru saja',
+        status: 'Menunggu Konfirmasi'
+      });
+
+      showToast(
+        'Permohonan Disetujui',
+        `Permohonan ${req.id} untuk ${req.patientName} (${req.bags} kantong ${req.bloodGroup}${req.rhesus}) disetujui. Kantong darah diteruskan ke logistik bangsal!`,
+        'success'
+      );
+
+      renderAdminRequests();
+      renderPatientHistory();
+      renderHospitalBags();
+      updateHeaderStats();
+    }
+
+    function rejectRequest(requestId) {
+      const req = bloodState.requests.find(r => r.id === requestId);
+      if (!req) return;
+
+      req.status = 'Ditolak';
+
+      showToast(
+        'Permohonan Ditolak',
+        `Permohonan ${req.id} untuk ${req.patientName} telah ditolak oleh BDRS.`,
+        'error'
+      );
+
+      renderAdminRequests();
+      renderPatientHistory();
+      updateHeaderStats();
+    }
+
+    // 5. FUNGSI LOGISTIK RUMAH SAKIT: STATUS KANTONG FISIK
+    function setBagStatus(bagId, newStatus) {
+      const bag = bloodState.hospitalBags.find(b => b.bagId === bagId);
+      if (!bag) return;
+
+      bag.status = newStatus;
+
+      if (newStatus === 'Disimpan di Bangsal') {
+        showToast(
+          'Dikonfirmasi di Bangsal',
+          `Kantong ${bag.bagId} (${bag.bloodGroup}) tersimpan di cold storage bangsal dan siap ditransfusikan.`,
+          'success'
+        );
+      } else if (newStatus === 'Dikembalikan ke Bank Darah') {
+        showToast(
+          'Dikembalikan ke BDRS',
+          `Kantong ${bag.bagId} dikembalikan ke Bank Darah untuk verifikasi ulang kualitas darah.`,
+          'warning'
+        );
+      }
+
+      renderHospitalBags();
+    }
+
+    // 6. RENDER LOGIC
+    function getStatusBadge(total) {
+      if (total < 10) return { text: 'Kritis', cls: 'bg-red-100 text-red-800' };
+      if (total <= 25) return { text: 'Terbatas', cls: 'bg-amber-100 text-amber-800' };
+      return { text: 'Aman', cls: 'bg-emerald-100 text-emerald-800' };
+    }
+
+    function renderTotoAccessBar() {
+      const banner = document.getElementById('toto-access-banner');
+      if (!banner) return;
+
+      if (bloodState.totoPatientVerified && bloodState.verifiedPatient) {
+        const p = bloodState.verifiedPatient;
+        banner.className = 'rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all';
+        banner.innerHTML = `
+          <div class="flex items-start sm:items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-xs sm:text-sm font-bold text-slate-900">
+                Pasien Terverifikasi RSUD Toto Kabila: ${p.name}
+              </p>
+              <p class="text-xs text-slate-600">
+                No. RM: <span class="font-mono font-semibold text-slate-800">${p.rm}</span> · ${p.ward} · Akses stok darah RSUD Toto Kabila terbuka
+              </p>
+            </div>
+          </div>
+          <button 
+            type="button" 
+            onclick="logoutTotoPatient()"
+            class="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0"
+          >
+            Kunci Kembali (Mode Publik)
+          </button>
+        `;
+      } else {
+        banner.className = 'rounded-xl border border-amber-200 bg-amber-50/70 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all';
+        banner.innerHTML = `
+          <div class="flex items-start sm:items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-amber-600 text-white flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-xs sm:text-sm font-bold text-slate-900">
+                Mode Akses Publik · Stok Darah RSUD Toto Kabila Dilindungi
+              </p>
+              <p class="text-xs text-slate-600">
+                RSUD Toto Kabila membatasi informasi stok darah hanya untuk pasien terdaftar RSUD Toto Kabila.
+              </p>
+            </div>
+          </div>
+          <button 
+            type="button" 
+            onclick="openVerificationModal()"
+            class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0"
+          >
+            Verifikasi Pasien RS Toto
+          </button>
+        `;
+      }
+    }
+
+    function renderTotoStatCard(grandTotalToto) {
+      const container = document.getElementById('stat-card-toto-container');
+      if (!container) return;
+
+      if (bloodState.totoPatientVerified) {
+        container.innerHTML = `
+          <p class="text-xs font-medium text-slate-500">Stok RSUD Toto Kabila</p>
+          <div class="flex items-baseline gap-2 mt-2">
+            <span id="stat-total-toto" class="text-2xl sm:text-3xl font-extrabold text-slate-900 tabular-nums">${grandTotalToto}</span>
+            <span class="text-xs font-semibold text-slate-600">Kantong</span>
+          </div>
+          <span class="inline-block mt-2 text-[11px] font-medium text-emerald-700">Pasien Terverifikasi · Riil</span>
+        `;
+      } else {
+        container.innerHTML = `
+          <p class="text-xs font-medium text-slate-500">Stok RSUD Toto Kabila</p>
+          <div class="flex items-center gap-2 mt-2.5 text-slate-700">
+            <svg class="w-5 h-5 text-red-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            <span class="text-lg sm:text-xl font-extrabold text-slate-800">Terkunci</span>
+          </div>
+          <button type="button" onclick="openVerificationModal()" class="mt-2 text-[11px] font-semibold text-red-600 hover:text-red-700 underline cursor-pointer">
+            Verifikasi Pasien RS Toto
+          </button>
+        `;
+      }
+    }
+
+    function renderTotoFaskesCard(grandTotalToto) {
+      const card = document.getElementById('faskes-card-toto');
+      if (!card) return;
+
+      if (!bloodState.totoPatientVerified) {
+        card.innerHTML = `
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-red-100 text-red-700 flex items-center justify-center font-bold text-lg">
+                TK
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="font-bold text-base sm:text-lg text-slate-900">RSUD Toto Kabila</h3>
+                  <span class="text-xs font-semibold text-red-700">· Khusus Pasien RSUD Toto Kabila</span>
+                </div>
+                <p class="text-xs text-slate-500">Jl. Kesehatan No. 25, Tilongkabila, Kab. Bone Bolango · Unit BDRS Gedung B</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="text-xs text-slate-500">Visibilitas Publik:</span>
+              <p class="text-sm font-bold text-red-600">Tidak Ditampilkan ke Publik</p>
+            </div>
+          </div>
+
+          <div class="mt-6 bg-slate-50 border border-slate-200 rounded-xl p-6 sm:p-8 text-center max-w-2xl mx-auto">
+            <div class="w-12 h-12 rounded-xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3">
+              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h4 class="text-base sm:text-lg font-bold text-slate-900">
+              Stok Darah RSUD Toto Kabila Bersifat Terbatas
+            </h4>
+            <p class="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
+              Pihak RSUD Toto Kabila tidak menampilkan jumlah stok darah kepada publik umum. Informasi ketersediaan golongan darah (A, B, AB, O & Rhesus) hanya dapat dilihat oleh pasien terdaftar RSUD Toto Kabila.
+            </p>
+            <div class="mt-5 flex flex-wrap items-center justify-center gap-3">
+              <button 
+                type="button" 
+                onclick="openVerificationModal()"
+                class="px-5 py-2.5 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-red-600/20 transition-all cursor-pointer flex items-center gap-2"
+              >
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <span>Verifikasi Sebagai Pasien RSUD Toto Kabila</span>
+              </button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      const groups = ['A', 'B', 'AB', 'O'];
+      const groupCardsHtml = groups.map(g => {
+        const item = bloodState.totoStock[g];
+        const status = getStatusBadge(item.total);
+        return `
+          <div class="bg-slate-50 hover:bg-red-50/50 p-4 rounded-xl border border-slate-200 transition-colors">
+            <div class="flex items-center justify-between">
+              <span class="text-2xl font-black text-red-600">${g}</span>
+              <span id="status-tag-toto-${g}" class="text-[11px] font-semibold px-2 py-0.5 rounded ${status.cls}">${status.text}</span>
+            </div>
+            <div class="mt-3 flex items-baseline justify-between">
+              <div>
+                <span class="text-3xl font-extrabold text-slate-900 tabular-nums" id="stock-toto-${g}">${item.total}</span>
+                <span class="text-xs text-slate-500 ml-1">kantong</span>
+              </div>
+            </div>
+            <div class="mt-3 pt-2 border-t border-slate-200/80 text-[11px] text-slate-500 space-y-1">
+              <div class="flex justify-between"><span>Rh (+) Positif:</span> <strong id="stock-toto-${g}-pos" class="text-slate-800 tabular-nums">${item.pos}</strong></div>
+              <div class="flex justify-between"><span>Rh (-) Negatif:</span> <strong id="stock-toto-${g}-neg" class="text-slate-800 tabular-nums">${item.neg}</strong></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      card.innerHTML = `
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-100">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-red-100 text-red-700 flex items-center justify-center font-bold text-lg">
+              TK
+            </div>
+            <div>
+              <div class="flex flex-wrap items-center gap-2">
+                <h3 class="font-bold text-base sm:text-lg text-slate-900">RSUD Toto Kabila</h3>
+                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-red-600 text-white tracking-wide">DATA RIIL · PASIEN TERVERIFIKASI</span>
+              </div>
+              <p class="text-xs text-slate-500">Jl. Kesehatan No. 25, Tilongkabila, Kab. Bone Bolango · Unit BDRS Gedung B</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-xs text-slate-500">Total Tersedia:</span>
+            <p class="text-xl font-extrabold text-red-600 tabular-nums" id="badge-total-toto">${grandTotalToto} Kantong</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+          ${groupCardsHtml}
+        </div>
+      `;
+    }
+
+    function renderStockCards() {
+      const groups = ['A', 'B', 'AB', 'O'];
+      let grandTotalToto = 0;
+
+      groups.forEach(g => {
+        const item = bloodState.totoStock[g];
+        grandTotalToto += item.total;
+        const status = getStatusBadge(item.total);
+
+        // Admin view (selalu tampil untuk petugas internal BDRS)
+        const adminCount = document.getElementById(`admin-count-${g}`);
+        const adminPos = document.getElementById(`admin-pos-${g}`);
+        const adminNeg = document.getElementById(`admin-neg-${g}`);
+        const adminStatus = document.getElementById(`admin-status-${g}`);
+
+        if (adminCount) adminCount.innerText = item.total;
+        if (adminPos) adminPos.innerText = item.pos;
+        if (adminNeg) adminNeg.innerText = item.neg;
+        if (adminStatus) {
+          adminStatus.innerText = status.text;
+          adminStatus.className = `px-2.5 py-1 rounded text-xs font-bold ${status.cls}`;
+        }
+      });
+
+      const adminTotalDisplay = document.getElementById('admin-total-stock-display');
+      if (adminTotalDisplay) adminTotalDisplay.innerText = grandTotalToto;
+
+      // Render Pasien view (terkunci untuk publik, terbuka hanya jika pasien RSUD Toto Kabila terverifikasi)
+      renderTotoAccessBar();
+      renderTotoStatCard(grandTotalToto);
+      renderTotoFaskesCard(grandTotalToto);
+      window.dispatchEvent(new CustomEvent('bloodconnect:stock-updated', { detail: bloodState.totoStock }));
+    }
+
+    function renderPatientHistory() {
+      const tbody = document.getElementById('patient-history-table');
+      if (!tbody) return;
+
+      tbody.innerHTML = bloodState.requests.map(req => {
+        let badge = '<span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-800">Menunggu</span>';
+        if (req.status === 'Disetujui') {
+          badge = '<span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-100 text-emerald-800">Disetujui</span>';
+        } else if (req.status === 'Ditolak') {
+          badge = '<span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-red-100 text-red-800">Ditolak</span>';
+        }
+
+        return `
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="py-3 px-3 font-mono font-bold text-red-600">${req.id}</td>
+            <td class="py-3 px-3">
+              <span class="font-bold text-slate-900 block">${req.patientName}</span>
+              <span class="text-[11px] text-slate-500">${req.ward}</span>
+            </td>
+            <td class="py-3 px-3 text-slate-600 font-medium">${req.hospital}</td>
+            <td class="py-3 px-3 text-center">
+              <span class="font-bold text-red-600">${req.bloodGroup}</span>
+              <span class="text-xs text-slate-500 font-mono">(${req.rhesus})</span>
+              <span class="block text-[10px] text-slate-400">${req.component}</span>
+            </td>
+            <td class="py-3 px-3 text-center font-bold tabular-nums">${req.bags} ktg</td>
+            <td class="py-3 px-3 text-xs text-slate-500">${req.timestamp}</td>
+            <td class="py-3 px-3 text-right">${badge}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderAdminRequests() {
+      const tbody = document.getElementById('admin-requests-table-body');
+      if (!tbody) return;
+
+      const filterVal = document.getElementById('admin-request-filter') ? document.getElementById('admin-request-filter').value : 'all';
+      
+      const filtered = bloodState.requests.filter(r => {
+        if (filterVal === 'all') return true;
+        return r.status === filterVal;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="py-8 text-center text-slate-400 text-xs">
+              Tidak ada permohonan dengan status "${filterVal}".
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(req => {
+        let statusBadge = '<span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-800">Menunggu Verifikasi</span>';
+        if (req.status === 'Disetujui') {
+          statusBadge = '<span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-100 text-emerald-800">Disetujui (Lolos)</span>';
+        } else if (req.status === 'Ditolak') {
+          statusBadge = '<span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-red-100 text-red-800">Ditolak</span>';
+        }
+
+        // Action buttons: Setujui (Green) & Tolak (Red)
+        const isPending = req.status === 'Menunggu';
+        const actionHtml = isPending ? `
+          <div class="flex items-center justify-center gap-2">
+            <button 
+              type="button" 
+              onclick="approveRequest('${req.id}')"
+              class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1 cursor-pointer"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+              <span>Setujui (Approve)</span>
+            </button>
+            <button 
+              type="button" 
+              onclick="rejectRequest('${req.id}')"
+              class="px-3 py-1.5 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1 cursor-pointer"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+              <span>Tolak (Reject)</span>
+            </button>
+          </div>
+        ` : `
+          <span class="text-xs text-slate-400 italic">Selesai Ditindaklanjuti</span>
+        `;
+
+        return `
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="py-3.5 px-4">
+              <span class="font-bold text-slate-900 block">${req.patientName}</span>
+              <span class="text-xs font-mono text-red-600">${req.id}</span> · <span class="text-xs text-slate-500">${req.ward}</span>
+            </td>
+            <td class="py-3.5 px-4 text-center">
+              <span class="inline-block px-2.5 py-1 rounded bg-red-50 text-red-700 font-extrabold text-sm border border-red-100">
+                ${req.bloodGroup} (${req.rhesus})
+              </span>
+              <span class="block text-[11px] text-slate-500 mt-0.5">${req.component}</span>
+            </td>
+            <td class="py-3.5 px-4 text-center font-bold tabular-nums text-slate-900">
+              ${req.bags} Kantong
+            </td>
+            <td class="py-3.5 px-4 text-xs text-slate-600">
+              ${req.timestamp}
+            </td>
+            <td class="py-3.5 px-4 text-center">
+              ${statusBadge}
+            </td>
+            <td class="py-3.5 px-4 text-center">
+              ${actionHtml}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterAdminRequests() {
+      renderAdminRequests();
+    }
+
+    function renderHospitalBags() {
+      const tbody = document.getElementById('hospital-bags-table-body');
+      if (!tbody) return;
+
+      let storedCount = 0;
+
+      tbody.innerHTML = bloodState.hospitalBags.map(bag => {
+        if (bag.status === 'Disimpan di Bangsal') storedCount++;
+
+        let statusClass = 'bg-slate-100 text-slate-700';
+        if (bag.status === 'Disimpan di Bangsal') statusClass = 'bg-emerald-100 text-emerald-800 font-bold';
+        if (bag.status === 'Dikembalikan ke Bank Darah') statusClass = 'bg-amber-100 text-amber-800 font-bold';
+
+        return `
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="py-3.5 px-4 font-mono font-bold text-slate-900">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full ${bag.status === 'Disimpan di Bangsal' ? 'bg-emerald-500' : (bag.status === 'Dikembalikan ke Bank Darah' ? 'bg-amber-500' : 'bg-blue-500')}"></span>
+                <span>${bag.bagId}</span>
+              </div>
+            </td>
+            <td class="py-3.5 px-4 text-center">
+              <span class="px-2 py-0.5 rounded bg-red-100 text-red-800 font-extrabold text-xs">
+                ${bag.bloodGroup}
+              </span>
+              <span class="block text-[11px] text-slate-500">${bag.component}</span>
+            </td>
+            <td class="py-3.5 px-4 text-slate-800 font-medium">
+              ${bag.patientTarget}
+            </td>
+            <td class="py-3.5 px-4 text-xs text-slate-600">
+              ${bag.receivedDate}
+            </td>
+            <td class="py-3.5 px-4 text-center">
+              <span class="px-2.5 py-1 rounded text-xs ${statusClass}">
+                ${bag.status}
+              </span>
+            </td>
+            <!-- KOLOM AKSI WAJIB: DUA TOMBOL BERLAWANAN -->
+            <td class="py-3.5 px-4 text-center">
+              <div class="flex items-center justify-center gap-2">
+                <button 
+                  type="button" 
+                  onclick="setBagStatus('${bag.bagId}', 'Disimpan di Bangsal')"
+                  title="Simpan di Bangsal untuk ditransfusikan"
+                  class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg text-xs font-semibold transition-all shadow-sm flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                  <span>Disimpan di Bangsal</span>
+                </button>
+                <button 
+                  type="button" 
+                  onclick="setBagStatus('${bag.bagId}', 'Dikembalikan ke Bank Darah')"
+                  title="Kembalikan kantong darah ke BDRS"
+                  class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white rounded-lg text-xs font-semibold transition-all shadow-sm flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                  <span>Dikembalikan ke Bank Darah</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      const storedEl = document.getElementById('hospital-stored-count');
+      if (storedEl) storedEl.innerText = storedCount;
+    }
+
+    function updateHeaderStats() {
+      const activePending = bloodState.requests.filter(r => r.status === 'Menunggu').length;
+      const statReq = document.getElementById('stat-active-req');
+      if (statReq) statReq.innerText = activePending;
+    }
+
+    function filterFaskesView(faskes) {
+      const cards = {
+        toto: document.getElementById('faskes-card-toto'),
+        khadijah: document.getElementById('faskes-card-khadijah'),
+        aloei: document.getElementById('faskes-card-aloei')
+      };
+
+      const buttons = {
+        all: document.getElementById('btn-filter-all'),
+        toto: document.getElementById('btn-filter-toto'),
+        khadijah: document.getElementById('btn-filter-khadijah'),
+        aloei: document.getElementById('btn-filter-aloei')
+      };
+
+      // Reset button styles
+      Object.keys(buttons).forEach(k => {
+        if (buttons[k]) {
+          buttons[k].className = (k === faskes) 
+            ? 'px-3 py-1.5 font-medium rounded-md bg-red-600 text-white' 
+            : 'px-3 py-1.5 font-medium rounded-md text-slate-600 hover:text-slate-900';
+        }
+      });
+
+      // Show/hide cards
+      if (faskes === 'all') {
+        Object.values(cards).forEach(c => { if (c) c.classList.remove('hidden'); });
+      } else {
+        Object.keys(cards).forEach(k => {
+          if (cards[k]) {
+            if (k === faskes) cards[k].classList.remove('hidden');
+            else cards[k].classList.add('hidden');
+          }
+        });
+      }
+    }
+
+    // 7. TOAST NOTIFICATION UTILITY
+    function showToast(title, message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      toast.className = 'pointer-events-auto max-w-sm w-full bg-white rounded-xl border p-4 shadow-xl flex items-start gap-3 transition-all duration-300 transform translate-y-2 opacity-0';
+
+      let iconColor = 'text-blue-600 bg-blue-50';
+      let borderColor = 'border-slate-200';
+
+      if (type === 'success') {
+        iconColor = 'text-emerald-600 bg-emerald-50';
+        borderColor = 'border-emerald-200';
+      } else if (type === 'error') {
+        iconColor = 'text-red-600 bg-red-50';
+        borderColor = 'border-red-200';
+      } else if (type === 'warning') {
+        iconColor = 'text-amber-600 bg-amber-50';
+        borderColor = 'border-amber-200';
+      }
+
+      toast.classList.add(borderColor);
+
+      toast.innerHTML = `
+        <div class="w-8 h-8 rounded-lg ${iconColor} flex items-center justify-center shrink-0">
+          <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+          </svg>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-bold text-slate-900">${title}</p>
+          <p class="text-xs text-slate-500 mt-0.5 leading-snug">${message}</p>
+        </div>
+        <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-600 p-1">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      `;
+
+      container.appendChild(toast);
+
+      // Animate in
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      // Auto dismiss after 4 seconds
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+    window.showToast = showToast;
+
+    function renderAllViews() {
+      renderStockCards();
+      renderPatientHistory();
+      renderAdminRequests();
+      renderHospitalBags();
+      updateHeaderStats();
+    }
+
+    // Initialize upon page load
+    document.addEventListener('DOMContentLoaded', () => {
+      renderAllViews();
+    });
+  </script>
+  <script type="module" src="/src/adminTrendChart.tsx"></script>
+  <script type="module" src="/src/adminPdfReport.ts"></script>
+</body>
+</html>
