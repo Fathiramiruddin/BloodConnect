@@ -1,6 +1,6 @@
 {
   "name": "BloodConnect RSUD Toto Kabila",
-  "description": "Sistem Manajemen dan Ketersediaan Darah Berbasis BDRS (Bank Darah Rumah Sakit) RSUD Toto Kabila dan faskes rujukan jejaring.",
+  "description": "Sistem Manajemen dan Ketersediaan Darah Berbasis BDRS (Bank Darah Rumah Sakit) RSUD Toto Kabila.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
